@@ -5,19 +5,25 @@
   "description": "Automatically handles eBay label printing flow and manages tabs",
   "permissions": [
     "tabs",
-    "*://*.ebay.com/*"
+    "*://*.ebay.com/*",
+    "*://www.lettertrackpro.com/*"
   ],
   "background": {
     "scripts": ["background.js"],
     "persistent": true
   },
-  "content_scripts": [{
-    "matches": [
-      "*://*.ebay.com/*"
-    ],
-    "js": ["content.js"],
-    "run_at": "document_end"
-  }],
+  "content_scripts": [
+    {
+      "matches": ["*://*.ebay.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://www.lettertrackpro.com/*"],
+      "js": ["lettertrack_content.js"],
+      "run_at": "document_end"
+    }
+  ],
   "icons": {
     "16": "icons/favicon-16x16.png",
     "48": "icons/favicon-32x32.png",

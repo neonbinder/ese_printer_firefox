@@ -52,11 +52,52 @@ function handlePrintLabelPage() {
         type: 'PRINT_PAGE_LOADED'
     });
 
-    const observer = new MutationObserver(() => {
-        const printButton = document.querySelector('button[aria-label="Print label"]');
+    let observer = null;
+    let checkInterval = null;
+
+    // Function to check for and click the print button
+    function checkAndClickPrintButton() {
+        // Try multiple selectors in case the button structure changed
+        let printButton = document.querySelector('button[aria-label="Print label"]');
+        
+        // If not found by aria-label, try finding by text content
+        if (!printButton) {
+            printButton = Array.from(document.querySelectorAll('button')).find(btn => 
+                btn.textContent.trim() === 'Print label' || 
+                btn.getAttribute('aria-label') === 'Print label'
+            );
+        }
+        
+        // Also try looking for buttons containing "Print" text
+        if (!printButton) {
+            printButton = Array.from(document.querySelectorAll('button')).find(btn => 
+                btn.textContent.trim().toLowerCase().includes('print label') ||
+                btn.textContent.trim() === 'Print label'
+            );
+        }
+        
+        // Debug: log all buttons if we haven't found the print button
+        if (!printButton) {
+            const allButtons = Array.from(document.querySelectorAll('button'));
+            console.log('[Content] Print button not found. Available buttons:', 
+                allButtons.map(btn => ({
+                    text: btn.textContent.trim(),
+                    ariaLabel: btn.getAttribute('aria-label'),
+                    classes: btn.className
+                }))
+            );
+        }
+        
         if (printButton) {
             console.log('[Content] Found Print Button');
-            observer.disconnect();
+            
+            // Clean up observers and intervals
+            if (observer) {
+                observer.disconnect();
+            }
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
 
             console.log('[Content] Clicking print button');
 
@@ -74,10 +115,39 @@ function handlePrintLabelPage() {
                     type: 'NAVIGATE_TO_ORDERS'
                 });
             }, 4000);
+            return true;
         }
+        return false;
+    }
+
+    // Check immediately in case button is already present
+    if (checkAndClickPrintButton()) {
+        return;
+    }
+
+    // Also set up observer for when button appears later
+    observer = new MutationObserver(() => {
+        checkAndClickPrintButton();
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also check periodically as a fallback (in case observer misses it)
+    checkInterval = setInterval(() => {
+        if (checkAndClickPrintButton()) {
+            clearInterval(checkInterval);
+        }
+    }, 500);
+    
+    // Stop checking after 10 seconds to avoid infinite loops
+    setTimeout(() => {
+        if (checkInterval) {
+            clearInterval(checkInterval);
+        }
+        if (observer) {
+            observer.disconnect();
+        }
+    }, 10000);
 }
 
 // Function to handle the get label type page
@@ -137,12 +207,20 @@ function init() {
     const currentUrl = window.location.href;
     console.log('[Content] Current URL:', currentUrl);
 
+    // Reset flags when navigating to a new page type
     if (currentUrl.startsWith('https://www.ebay.com/ship/single/print/')) {
+        // Reset the flag when we navigate to a print page
+        window.alreadyHandlingPrint = false;
         handlePrintLabelPage();
     } else if (currentUrl.startsWith('https://www.ebay.com/ship/single/')) {
+        // Reset flag when navigating away from print page
+        window.alreadyHandlingPrint = false;
         handleGetLabelTypePage();
     } else if (currentUrl.includes('/download')) {
         handlePdfDownloadPage();
+    } else {
+        // Reset flag for any other page
+        window.alreadyHandlingPrint = false;
     }
 }
 
@@ -152,5 +230,23 @@ init();
 // Monitor for URL changes
 onUrlChange((newUrl) => {
     console.log(`[Content] URL changed to: ${newUrl}`);
-    init();
+    // Small delay to ensure DOM is ready after navigation
+    setTimeout(() => {
+        init();
+    }, 100);
 });
+
+// Also periodically check if we're on a print page but haven't handled it yet
+// This catches cases where URL change detection might miss the transition
+let lastCheckedUrl = window.location.href;
+setInterval(() => {
+    const currentUrl = window.location.href;
+    // Only check if URL actually changed and we're on a print page
+    if (currentUrl !== lastCheckedUrl) {
+        lastCheckedUrl = currentUrl;
+        if (currentUrl.startsWith('https://www.ebay.com/ship/single/print/') && !window.alreadyHandlingPrint) {
+            console.log('[Content] Detected print page but handler not running, initializing...');
+            init();
+        }
+    }
+}, 500);

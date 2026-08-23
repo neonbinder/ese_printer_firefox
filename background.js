@@ -4,6 +4,10 @@ const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 // Track the main eBay tab we're working from
 let mainEbayTabId = null;
 let pdfTabsToClose = new Set();
+// Track the last active tab so we can switch back when lettertrackpro PDFs open
+let lastActiveTabId = null;
+// Track lettertrackpro PDF tabs
+let lettertrackPdfTabs = new Set();
 
 // Listen for tab creation
 browserAPI.tabs.onCreated.addListener((tab) => {
@@ -37,6 +41,13 @@ browserAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }, 3000);
   }
   
+  // Detect LetterTrack Pro PDF tabs by URL
+  if (changeInfo.url && changeInfo.url.match(/^https?:\/\/www\.lettertrackpro\.com\/.*\.pdf/)) {
+    console.log('[Background] Detected LetterTrack Pro PDF tab:', tabId, changeInfo.url);
+    pdfTabsToClose.add(tabId);
+    lettertrackPdfTabs.add(tabId);
+  }
+
   // Track which tab is the main eBay workflow tab
   if (changeInfo.url && 
       (changeInfo.url.includes('ebay.com/sh/ord') || 
@@ -57,6 +68,9 @@ browserAPI.tabs.onActivated.addListener((activeInfo) => {
     }).catch(err => {
       console.error('[Background] Error redirecting focus:', err);
     });
+  } else if (!pdfTabsToClose.has(tabId)) {
+    // Track the last non-PDF tab the user was on (for lettertrackpro focus-back)
+    lastActiveTabId = tabId;
   }
 });
 
@@ -74,6 +88,31 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Store the tab that initiated printing
     mainEbayTabId = sender.tab.id;
     console.log('[Background] Print initiated from tab:', mainEbayTabId);
+  }
+
+  if (message.type === 'LETTERTRACK_PRINTED') {
+    const printedTabId = sender.tab.id;
+    console.log('[Background] LetterTrack Pro PDF printed from tab:', printedTabId);
+
+    // Switch focus back to the previous tab
+    if (lastActiveTabId) {
+      browserAPI.tabs.update(lastActiveTabId, { active: true }).then(() => {
+        console.log('[Background] Switched focus back to previous tab:', lastActiveTabId);
+      }).catch(err => {
+        console.error('[Background] Error switching tabs:', err);
+      });
+    }
+
+    // Close the PDF tab after giving time for the print job to queue
+    setTimeout(() => {
+      browserAPI.tabs.remove(printedTabId).then(() => {
+        console.log('[Background] Closed LetterTrack Pro PDF tab:', printedTabId);
+        pdfTabsToClose.delete(printedTabId);
+        lettertrackPdfTabs.delete(printedTabId);
+      }).catch(err => {
+        console.error('[Background] Error closing tab:', err);
+      });
+    }, 3000);
   }
 
   if (message.type === 'NAVIGATE_TO_ORDERS') {
