@@ -7,7 +7,8 @@
     "lint": "web-ext lint",
     "start": "web-ext run",
     "build": "web-ext build",
-    "sign": "sh scripts/sign.sh"
+    "sign": "sh scripts/sign.sh",
+    "release": "sh scripts/release.sh"
   },
   "devDependencies": {
     "web-ext": "^8.0.0"

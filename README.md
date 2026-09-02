@@ -87,6 +87,19 @@ npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition
    ```
 4. Open the `.xpi` written to `web-ext-artifacts/` in Firefox. It installs permanently, and re-opening a newer `.xpi` upgrades it in place because the extension ID (`ese-printer@neonbinder.io`) stays the same.
 
+### One-step release
+
+Once `.env` is set up, this does the whole thing: lint, bump the version in `manifest.json` and `package.json`, commit and tag `vX.Y.Z`, sign, and open the `.xpi` in Firefox.
+
+```bash
+npm run release              # patch bump (1.1.0 -> 1.1.1)
+npm run release -- minor     # or major, or an explicit version like 1.4.0
+npm run release -- --dry-run # lint and show the plan without changing anything
+git push origin main --tags  # after accepting the install prompt
+```
+
+It requires a clean git tree, so commit your work first.
+
 ### Public listing
 
 To publish on addons.mozilla.org, run `npm run build` and upload the zip through the developer hub, or run `npm run sign -- --channel=listed`. Listed submissions get a human review. Keep `npm run lint` clean before submitting.
