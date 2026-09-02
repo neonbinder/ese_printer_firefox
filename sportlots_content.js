@@ -44,15 +44,11 @@ function injectStyles() {
             border-radius: 6px;
         }
         .${BUTTON_CONTAINER_CLASS} button img {
-            width: 32px;
-            height: 32px;
+            height: 36px;
+            width: auto;
             display: block;
             border-radius: 6px;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
-        }
-        .${BUTTON_CONTAINER_CLASS} button[data-weight="2"] img {
-            width: 40px;
-            height: 40px;
         }
         .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) img {
             transform: scale(1.1);
