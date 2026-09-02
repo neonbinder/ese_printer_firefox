@@ -1,5 +1,7 @@
 
 // browser.runtime.sendMessage returns a Promise (Firefox); chrome.runtime.sendMessage uses a callback.
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
 function sendMessage(message) {
     if (typeof browser !== 'undefined') {
         return browser.runtime.sendMessage(message);
@@ -27,31 +29,32 @@ function injectStyles() {
         .${BUTTON_CONTAINER_CLASS} {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             margin-top: 4px;
             font-size: 11px;
             white-space: nowrap;
         }
-        .${BUTTON_CONTAINER_CLASS} .ese-nb-label {
-            color: #444;
-            margin-right: 2px;
-        }
         .${BUTTON_CONTAINER_CLASS} button {
-            font-size: 11px;
-            line-height: 1;
-            padding: 3px 6px;
-            border: 1px solid #00a3d9;
-            border-radius: 3px;
-            background: #e8f8ff;
-            color: #005f80;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            line-height: 0;
             cursor: pointer;
+            border-radius: 6px;
         }
-        .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) {
-            background: #00C2FF;
-            color: #000;
+        .${BUTTON_CONTAINER_CLASS} button img {
+            width: 32px;
+            height: 32px;
+            display: block;
+            border-radius: 6px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) img {
+            transform: scale(1.1);
+            box-shadow: 0 0 6px #00ff88;
         }
         .${BUTTON_CONTAINER_CLASS} button:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: default;
         }
         .${BUTTON_CONTAINER_CLASS} .ese-nb-status {
@@ -164,16 +167,16 @@ function injectButtonsIntoRow(row) {
     const container = document.createElement('div');
     container.className = BUTTON_CONTAINER_CLASS;
 
-    const label = document.createElement('span');
-    label.className = 'ese-nb-label';
-    label.textContent = 'Neonbinder:';
-    container.appendChild(label);
-
     NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = `${weightOz} oz`;
         btn.title = `Buy and print a ${weightOz} oz label with Neon Binder`;
+        btn.setAttribute('aria-label', btn.title);
+
+        const icon = document.createElement('img');
+        icon.src = browserAPI.runtime.getURL(`icons/neonbinder-${weightOz}oz.png`);
+        icon.alt = `${weightOz} oz`;
+        btn.appendChild(icon);
         btn.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();

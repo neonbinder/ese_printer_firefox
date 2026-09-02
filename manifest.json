@@ -60,5 +60,10 @@
     "16": "icons/favicon-16x16.png",
     "48": "icons/favicon-32x32.png",
     "128": "icons/android-chrome-192x192.png"
-  }
+  },
+  "web_accessible_resources": [
+    "icons/neonbinder-1oz.png",
+    "icons/neonbinder-2oz.png",
+    "icons/neonbinder-3oz.png"
+  ]
 }
