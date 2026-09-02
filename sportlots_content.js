@@ -29,8 +29,9 @@ function injectStyles() {
         .${BUTTON_CONTAINER_CLASS} {
             display: inline-flex;
             align-items: center;
+            vertical-align: middle;
             gap: 6px;
-            margin-top: 4px;
+            margin-left: 12px;
             font-size: 11px;
             white-space: nowrap;
         }
@@ -159,12 +160,29 @@ async function handlePrintClick(row, container, weightOz) {
     }
 }
 
-function injectButtonsIntoRow(row) {
-    if (row.querySelector(`.${BUTTON_CONTAINER_CLASS}`)) return;
-    const packLink = row.querySelector('a.js-pack');
-    if (!packLink) return;
+// Sportlots renders a hidden `.paid-lines` fill panel after each `.paid-order`
+// row (shown when the user clicks "Fill Order"). Both carry the same
+// data-order-key. We place the icons next to that panel's "Submit Fill" button.
+function findOrderRowForPanel(panel) {
+    const key = panel.dataset.orderKey;
+    if (key) {
+        const match = Array.from(document.querySelectorAll('.paid-order')).find((row) => row.dataset.orderKey === key);
+        if (match) return match;
+    }
+    const prev = panel.previousElementSibling;
+    return prev && prev.classList.contains('paid-order') ? prev : null;
+}
 
-    const container = document.createElement('div');
+function injectButtonsIntoPanel(panel) {
+    if (panel.querySelector(`.${BUTTON_CONTAINER_CLASS}`)) return;
+
+    const submitButton = panel.querySelector('button.js-submit-fill');
+    if (!submitButton) return;
+
+    const row = findOrderRowForPanel(panel);
+    if (!row || !row.querySelector('a.js-pack')) return;
+
+    const container = document.createElement('span');
     container.className = BUTTON_CONTAINER_CLASS;
 
     NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
@@ -185,13 +203,12 @@ function injectButtonsIntoRow(row) {
         container.appendChild(btn);
     });
 
-    // The order id link and "(Buyer Name)" live in the row's first cell.
-    const cell = packLink.parentElement;
-    cell.appendChild(container);
+    // Right after "Submit Fill", ahead of Sportlots' own status message span.
+    submitButton.insertAdjacentElement('afterend', container);
 }
 
 function injectButtons() {
-    document.querySelectorAll('.paid-order').forEach(injectButtonsIntoRow);
+    document.querySelectorAll('.paid-lines').forEach(injectButtonsIntoPanel);
 }
 
 function init() {

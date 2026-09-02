@@ -50,7 +50,7 @@ If you need to reprint a label, simply navigate to the print page for that order
 
 ### Sportlots → Neon Binder Flow
 
-On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`), every order row gets three Neon Binder icons (1 oz, 2 oz, 3 oz) under the order number. Clicking one:
+On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`), click **Fill Order** on an order and three Neon Binder icons (1 oz, 2 oz, 3 oz) appear next to the **Submit Fill** button. Clicking one:
 
 1. Pulls the order's **Ship To** address and card count from Sportlots' packing slip data (no packing slip window is opened)
 2. Opens `https://www.neonbinder.io/print/shipping` in a new tab
