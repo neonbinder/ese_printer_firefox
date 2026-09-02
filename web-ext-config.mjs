@@ -17,6 +17,7 @@ export default {
     '.gitignore',
     '.git',
     '.env',
+    '.amo-upload-uuid',
     'scripts',
     // website favicon leftovers that the extension does not use
     'icons/about.txt',

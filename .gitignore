@@ -7,3 +7,6 @@ node_modules/
 
 # Mozilla API credentials for signing (MOZILLA_ISSUER / MOZILLA_SECRET)
 .env
+
+# web-ext sign bookkeeping
+.amo-upload-uuid
