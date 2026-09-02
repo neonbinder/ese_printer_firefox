@@ -76,10 +76,10 @@ npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition
 ### Signed build for personal use (unlisted)
 
 1. Create a free account at [addons.mozilla.org](https://addons.mozilla.org) and generate API credentials on the [API key page](https://addons.mozilla.org/developers/addon/api/key/).
-2. Export them in your shell (never commit them):
-   ```bash
-   export WEB_EXT_API_KEY=user:xxxx:xxx
-   export WEB_EXT_API_SECRET=xxxxxxxx
+2. Put them in a `.env` file at the repo root (it is git-ignored and excluded from the build):
+   ```
+   MOZILLA_KEY=user:xxxx:xxx
+   MOZILLA_SECRET=xxxxxxxx
    ```
 3. Bump `version` in `manifest.json` and `package.json` (Mozilla rejects a version it has already signed), then:
    ```bash
@@ -89,7 +89,7 @@ npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition
 
 ### Public listing
 
-To publish on addons.mozilla.org, run `npm run build` and upload the zip through the developer hub, or run `web-ext sign --channel=listed`. Listed submissions get a human review. Keep `npm run lint` clean before submitting.
+To publish on addons.mozilla.org, run `npm run build` and upload the zip through the developer hub, or run `npm run sign -- --channel=listed`. Listed submissions get a human review. Keep `npm run lint` clean before submitting.
 
 ## Requirements
 

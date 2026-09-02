@@ -4,3 +4,6 @@ web-ext-artifacts/
 # local tooling
 node_modules/
 .DS_Store
+
+# Mozilla API credentials for signing (MOZILLA_KEY / MOZILLA_SECRET)
+.env
