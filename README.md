@@ -78,7 +78,7 @@ npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition
 1. Create a free account at [addons.mozilla.org](https://addons.mozilla.org) and generate API credentials on the [API key page](https://addons.mozilla.org/developers/addon/api/key/).
 2. Put them in a `.env` file at the repo root (it is git-ignored and excluded from the build):
    ```
-   MOZILLA_KEY=user:xxxx:xxx
+   MOZILLA_ISSUER=user:xxxx:xxx
    MOZILLA_SECRET=xxxxxxxx
    ```
 3. Bump `version` in `manifest.json` and `package.json` (Mozilla rejects a version it has already signed), then:

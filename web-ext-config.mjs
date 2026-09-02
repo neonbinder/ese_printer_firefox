@@ -3,7 +3,7 @@
 //   npx web-ext lint                          # check the extension for review problems
 //   npx web-ext run                           # launch Firefox with the extension loaded
 //   npx web-ext build                         # produce an unsigned zip in web-ext-artifacts/
-//   npm run sign                              # get a Mozilla-signed .xpi (reads MOZILLA_KEY / MOZILLA_SECRET from .env)
+//   npm run sign                              # get a Mozilla-signed .xpi (reads MOZILLA_ISSUER / MOZILLA_SECRET from .env)
 export default {
   sourceDir: '.',
   artifactsDir: 'web-ext-artifacts',

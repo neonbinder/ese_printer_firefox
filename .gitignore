@@ -5,5 +5,5 @@ web-ext-artifacts/
 node_modules/
 .DS_Store
 
-# Mozilla API credentials for signing (MOZILLA_KEY / MOZILLA_SECRET)
+# Mozilla API credentials for signing (MOZILLA_ISSUER / MOZILLA_SECRET)
 .env
