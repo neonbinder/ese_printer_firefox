@@ -50,6 +50,10 @@ function injectStyles() {
             border-radius: 6px;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
+        .${BUTTON_CONTAINER_CLASS} button[data-weight="2"] img {
+            width: 40px;
+            height: 40px;
+        }
         .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) img {
             transform: scale(1.1);
             box-shadow: 0 0 6px #00ff88;
@@ -190,6 +194,7 @@ function injectButtonsIntoPanel(panel) {
         btn.type = 'button';
         btn.title = `Buy and print a ${weightOz} oz label with Neon Binder`;
         btn.setAttribute('aria-label', btn.title);
+        btn.dataset.weight = String(weightOz);
 
         const icon = document.createElement('img');
         icon.src = browserAPI.runtime.getURL(`icons/neonbinder-${weightOz}oz.png`);
