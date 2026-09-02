@@ -1,0 +1,204 @@
+
+// browser.runtime.sendMessage returns a Promise (Firefox); chrome.runtime.sendMessage uses a callback.
+function sendMessage(message) {
+    if (typeof browser !== 'undefined') {
+        return browser.runtime.sendMessage(message);
+    }
+    return new Promise((resolve) => chrome.runtime.sendMessage(message, resolve));
+}
+
+console.log('[Sportlots Content] ESE Printer Sportlots script loaded');
+
+// Sportlots renders the paid-order list client-side into #paidBody. Each order
+// row is a `.paid-grid.paid-order` element whose `a.js-pack` link carries the
+// packing slip URL in `data-url`. That page is itself just a shell that fetches
+// JSON from /s/node/orders/packing-slip, so we call that endpoint directly and
+// never need to open the packing slip.
+
+const PACKING_SLIP_API = '/s/node/orders/packing-slip';
+const NEONBINDER_WEIGHTS_OZ = [1, 2, 3];
+const BUTTON_CONTAINER_CLASS = 'ese-nb-print';
+
+function injectStyles() {
+    if (document.getElementById('ese-nb-style')) return;
+    const style = document.createElement('style');
+    style.id = 'ese-nb-style';
+    style.textContent = `
+        .${BUTTON_CONTAINER_CLASS} {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .${BUTTON_CONTAINER_CLASS} .ese-nb-label {
+            color: #444;
+            margin-right: 2px;
+        }
+        .${BUTTON_CONTAINER_CLASS} button {
+            font-size: 11px;
+            line-height: 1;
+            padding: 3px 6px;
+            border: 1px solid #00a3d9;
+            border-radius: 3px;
+            background: #e8f8ff;
+            color: #005f80;
+            cursor: pointer;
+        }
+        .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) {
+            background: #00C2FF;
+            color: #000;
+        }
+        .${BUTTON_CONTAINER_CLASS} button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .${BUTTON_CONTAINER_CLASS} .ese-nb-status {
+            color: #005f80;
+        }
+        .${BUTTON_CONTAINER_CLASS} .ese-nb-status.error {
+            color: #b00020;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Turn the packing slip page URL from the order link into the JSON API URL.
+function buildPackingSlipApiUrl(packUrl) {
+    const pageUrl = new URL(packUrl, window.location.origin);
+    const apiUrl = new URL(PACKING_SLIP_API, window.location.origin);
+    apiUrl.searchParams.set('cust_cd', pageUrl.searchParams.get('cust_cd') || '');
+    apiUrl.searchParams.set('order_dt', pageUrl.searchParams.get('Order_dt') || '');
+    apiUrl.searchParams.set('order_tm', pageUrl.searchParams.get('Order_tm') || '');
+    apiUrl.searchParams.set('e', pageUrl.searchParams.get('e') || 'y');
+    return apiUrl.toString();
+}
+
+async function fetchPackingSlip(packUrl) {
+    const apiUrl = buildPackingSlipApiUrl(packUrl);
+    console.log('[Sportlots Content] Fetching packing slip data:', apiUrl);
+    const response = await fetch(apiUrl, { credentials: 'include' });
+    const json = await response.json().catch(() => null);
+    if (!response.ok || !json || !json.ok || !json.data) {
+        const msg = (json && json.error) || `HTTP ${response.status}`;
+        throw new Error(`Packing slip request failed: ${msg}`);
+    }
+    return json.data;
+}
+
+// Build the multi-line "Ship To" address that Neon Binder's paste box expects.
+function buildShipToAddress(data) {
+    const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const lines = [collapse(data.ship_to_name)];
+    // ship_to_addr1, ship_to_addr2, ... in numeric order
+    Object.keys(data)
+        .filter((key) => /^ship_to_addr\d+$/.test(key))
+        .sort((a, b) => parseInt(a.replace(/\D/g, ''), 10) - parseInt(b.replace(/\D/g, ''), 10))
+        .forEach((key) => lines.push(collapse(data[key])));
+    return lines.filter(Boolean).join('\n');
+}
+
+function setStatus(container, text, isError) {
+    let status = container.querySelector('.ese-nb-status');
+    if (!status) {
+        status = document.createElement('span');
+        status.className = 'ese-nb-status';
+        container.appendChild(status);
+    }
+    status.textContent = text;
+    status.classList.toggle('error', Boolean(isError));
+}
+
+function setButtonsDisabled(container, disabled) {
+    container.querySelectorAll('button').forEach((btn) => { btn.disabled = disabled; });
+}
+
+async function handlePrintClick(row, container, weightOz) {
+    const packLink = row.querySelector('a.js-pack');
+    const orderId = (row.dataset.orderKey || packLink.textContent || '').trim();
+    const packUrl = packLink.dataset.url;
+
+    if (!packUrl) {
+        setStatus(container, 'No packing slip URL', true);
+        return;
+    }
+
+    setButtonsDisabled(container, true);
+    setStatus(container, 'Loading…', false);
+
+    try {
+        const data = await fetchPackingSlip(packUrl);
+        const address = buildShipToAddress(data);
+        const cardCount = Number(data.total_qty) || 0;
+
+        if (!address) {
+            throw new Error('Ship To address was empty');
+        }
+
+        console.log('[Sportlots Content] Sending label job to Neon Binder:', { orderId, weightOz, cardCount, address });
+
+        const response = await sendMessage({
+            type: 'SPORTLOTS_PRINT_LABEL',
+            job: { orderId, address, weightOz, cardCount }
+        });
+
+        if (!response || !response.success) {
+            throw new Error((response && response.error) || 'Background did not accept the job');
+        }
+
+        setStatus(container, `Sent ${weightOz} oz ✓`, false);
+    } catch (err) {
+        console.error('[Sportlots Content] Error preparing label:', err);
+        setStatus(container, 'Error: ' + err.message, true);
+    } finally {
+        setButtonsDisabled(container, false);
+    }
+}
+
+function injectButtonsIntoRow(row) {
+    if (row.querySelector(`.${BUTTON_CONTAINER_CLASS}`)) return;
+    const packLink = row.querySelector('a.js-pack');
+    if (!packLink) return;
+
+    const container = document.createElement('div');
+    container.className = BUTTON_CONTAINER_CLASS;
+
+    const label = document.createElement('span');
+    label.className = 'ese-nb-label';
+    label.textContent = 'Neonbinder:';
+    container.appendChild(label);
+
+    NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `${weightOz} oz`;
+        btn.title = `Buy and print a ${weightOz} oz label with Neon Binder`;
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handlePrintClick(row, container, weightOz);
+        });
+        container.appendChild(btn);
+    });
+
+    // The order id link and "(Buyer Name)" live in the row's first cell.
+    const cell = packLink.parentElement;
+    cell.appendChild(container);
+}
+
+function injectButtons() {
+    document.querySelectorAll('.paid-order').forEach(injectButtonsIntoRow);
+}
+
+function init() {
+    injectStyles();
+    injectButtons();
+
+    // The order list is rendered (and re-rendered on sort/filter) by Sportlots'
+    // own JS, so keep watching for new rows.
+    const observer = new MutationObserver(() => injectButtons());
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+init();

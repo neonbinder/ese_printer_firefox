@@ -2,25 +2,57 @@
   "manifest_version": 2,
   "name": "ESE Printer - eBay Label Automation",
   "version": "1.0",
-  "description": "Automatically handles eBay label printing flow and manages tabs",
+  "description": "Automatically handles eBay label printing flow, LetterTrack Pro PDFs, and Sportlots-to-Neon Binder label buying",
   "permissions": [
     "tabs",
     "*://*.ebay.com/*",
-    "*://www.lettertrackpro.com/*"
+    "*://www.lettertrackpro.com/*",
+    "*://sportlots.com/*",
+    "*://www.sportlots.com/*",
+    "*://www.neonbinder.io/*"
   ],
   "background": {
-    "scripts": ["background.js"],
+    "scripts": [
+      "background.js"
+    ],
     "persistent": true
   },
   "content_scripts": [
     {
-      "matches": ["*://*.ebay.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "*://*.ebay.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_end"
     },
     {
-      "matches": ["*://www.lettertrackpro.com/*"],
-      "js": ["lettertrack_content.js"],
+      "matches": [
+        "*://www.lettertrackpro.com/*"
+      ],
+      "js": [
+        "lettertrack_content.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://sportlots.com/s/ui/paid.html*",
+        "*://www.sportlots.com/s/ui/paid.html*"
+      ],
+      "js": [
+        "sportlots_content.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://www.neonbinder.io/print/shipping*"
+      ],
+      "js": [
+        "neonbinder_content.js"
+      ],
       "run_at": "document_end"
     }
   ],

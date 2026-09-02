@@ -8,6 +8,9 @@ let pdfTabsToClose = new Set();
 let lastActiveTabId = null;
 // Track lettertrackpro PDF tabs
 let lettertrackPdfTabs = new Set();
+// Sportlots -> Neon Binder label jobs, keyed by the Neon Binder tab id
+const NEONBINDER_SHIPPING_URL = 'https://www.neonbinder.io/print/shipping';
+let neonbinderJobs = new Map();
 
 // Listen for tab creation
 browserAPI.tabs.onCreated.addListener((tab) => {
@@ -74,9 +77,72 @@ browserAPI.tabs.onActivated.addListener((activeInfo) => {
   }
 });
 
+// Clean up job bookkeeping if a Neon Binder tab is closed by hand
+browserAPI.tabs.onRemoved.addListener((tabId) => {
+  if (neonbinderJobs.has(tabId)) {
+    console.log('[Background] Neon Binder tab closed, dropping job for tab:', tabId);
+    neonbinderJobs.delete(tabId);
+  }
+});
+
 // Listen for messages from content script
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] Received message:', message);
+
+  // --- Sportlots -> Neon Binder flow -----------------------------------------
+
+  if (message.type === 'SPORTLOTS_PRINT_LABEL') {
+    // Open Neon Binder in a new tab and remember the job for that tab
+    const sourceTabId = sender.tab.id;
+    browserAPI.tabs.create({ url: NEONBINDER_SHIPPING_URL, active: true }).then((tab) => {
+      neonbinderJobs.set(tab.id, { ...message.job, sourceTabId });
+      console.log('[Background] Opened Neon Binder tab', tab.id, 'for order', message.job.orderId);
+      sendResponse({ success: true, tabId: tab.id });
+    }).catch((err) => {
+      console.error('[Background] Error opening Neon Binder tab:', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // async sendResponse
+  }
+
+  if (message.type === 'NEONBINDER_GET_JOB') {
+    const job = neonbinderJobs.get(sender.tab.id) || null;
+    sendResponse({ success: true, job });
+    return true;
+  }
+
+  if (message.type === 'NEONBINDER_LABEL_PRINTED') {
+    const printedTabId = sender.tab.id;
+    const job = neonbinderJobs.get(printedTabId);
+    neonbinderJobs.delete(printedTabId);
+    console.log('[Background] Neon Binder label printed for order:', job && job.orderId);
+
+    // Switch back to the Sportlots tab that started the job, then close Neon Binder
+    const focusBack = job && job.sourceTabId
+      ? browserAPI.tabs.update(job.sourceTabId, { active: true }).catch((err) => {
+          console.error('[Background] Error switching back to Sportlots tab:', err);
+        })
+      : Promise.resolve();
+
+    focusBack.then(() => browserAPI.tabs.remove(printedTabId)).then(() => {
+      console.log('[Background] Closed Neon Binder tab:', printedTabId);
+    }).catch((err) => {
+      console.error('[Background] Error closing Neon Binder tab:', err);
+    });
+
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'NEONBINDER_JOB_FAILED') {
+    // Leave the tab open for the user; just forget the job so a reload starts clean
+    console.error('[Background] Neon Binder job failed in tab', sender.tab.id, ':', message.error);
+    neonbinderJobs.delete(sender.tab.id);
+    sendResponse({ success: true });
+    return true;
+  }
+
+  // --- eBay / LetterTrack Pro flow (unchanged) --------------------------------
 
   if (message.type === 'PRINT_PAGE_LOADED') {
     // Track this tab when print page loads (handles reprint flow where user navigates directly)
