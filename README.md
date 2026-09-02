@@ -35,7 +35,7 @@ It also works if you need to **reprint a label** - just navigate to the reprint 
 5. Navigate to the extension folder and select the `manifest.json` file
 6. The extension is now active!
 
-> **Note:** Temporary add-ons are removed when Firefox closes. For permanent installation, the extension needs to be signed by Mozilla.
+> **Note:** Temporary add-ons are removed when Firefox closes. For a permanent install, use a Mozilla-signed build (see [Building and Signing](#building-and-signing)).
 
 ## Usage
 
@@ -61,6 +61,35 @@ On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`)
 You pick the weight yourself; the extension never guesses. If anything goes wrong (address not parsed, purchase failed, print dialog never closed), the Neon Binder tab is left open so you can finish by hand, and the reason is logged to the console with a `[NeonBinder Content]` prefix.
 
 You must already be signed in to both Sportlots and Neon Binder.
+
+## Building and Signing
+
+Firefox only keeps an extension installed across restarts if Mozilla has signed it. This repo uses Mozilla's [`web-ext`](https://extensionworkshop.com/documentation/develop/web-ext-command-reference/) tool for that.
+
+```bash
+npm install          # installs web-ext locally
+npm run lint         # same checks Mozilla's reviewers run
+npm start            # launches Firefox with the extension loaded (auto-reloads on save)
+npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition / Nightly)
+```
+
+### Signed build for personal use (unlisted)
+
+1. Create a free account at [addons.mozilla.org](https://addons.mozilla.org) and generate API credentials on the [API key page](https://addons.mozilla.org/developers/addon/api/key/).
+2. Export them in your shell (never commit them):
+   ```bash
+   export WEB_EXT_API_KEY=user:xxxx:xxx
+   export WEB_EXT_API_SECRET=xxxxxxxx
+   ```
+3. Bump `version` in `manifest.json` and `package.json` (Mozilla rejects a version it has already signed), then:
+   ```bash
+   npm run sign
+   ```
+4. Open the `.xpi` written to `web-ext-artifacts/` in Firefox. It installs permanently, and re-opening a newer `.xpi` upgrades it in place because the extension ID (`ese-printer@neonbinder.io`) stays the same.
+
+### Public listing
+
+To publish on addons.mozilla.org, run `npm run build` and upload the zip through the developer hub, or run `web-ext sign --channel=listed`. Listed submissions get a human review. Keep `npm run lint` clean before submitting.
 
 ## Requirements
 

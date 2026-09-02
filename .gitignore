@@ -1,0 +1,6 @@
+# web-ext build/sign output
+web-ext-artifacts/
+
+# local tooling
+node_modules/
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "name": "ese-printer-firefox",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Firefox extension: eBay Standard Envelope, LetterTrack Pro, and Sportlots to Neon Binder label automation",
+  "scripts": {
+    "lint": "web-ext lint",
+    "start": "web-ext run",
+    "build": "web-ext build",
+    "sign": "web-ext sign --channel=unlisted"
+  },
+  "devDependencies": {
+    "web-ext": "^8.0.0"
+  }
+}
