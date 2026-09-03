@@ -11,6 +11,9 @@ let lettertrackPdfTabs = new Set();
 // Sportlots -> Neon Binder label jobs, keyed by the Neon Binder tab id
 const NEONBINDER_SHIPPING_URL = 'https://www.neonbinder.io/print/shipping';
 let neonbinderJobs = new Map();
+// Sportlots -> Pirate Ship address jobs, keyed by the Pirate Ship tab id
+const PIRATESHIP_SINGLE_URL = 'https://ship.pirateship.com/ship/single';
+let pirateshipJobs = new Map();
 
 // Listen for tab creation
 browserAPI.tabs.onCreated.addListener((tab) => {
@@ -77,11 +80,15 @@ browserAPI.tabs.onActivated.addListener((activeInfo) => {
   }
 });
 
-// Clean up job bookkeeping if a Neon Binder tab is closed by hand
+// Clean up job bookkeeping if a Neon Binder / Pirate Ship tab is closed by hand
 browserAPI.tabs.onRemoved.addListener((tabId) => {
   if (neonbinderJobs.has(tabId)) {
     console.log('[Background] Neon Binder tab closed, dropping job for tab:', tabId);
     neonbinderJobs.delete(tabId);
+  }
+  if (pirateshipJobs.has(tabId)) {
+    console.log('[Background] Pirate Ship tab closed, dropping job for tab:', tabId);
+    pirateshipJobs.delete(tabId);
   }
 });
 
@@ -138,6 +145,41 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Leave the tab open for the user; just forget the job so a reload starts clean
     console.error('[Background] Neon Binder job failed in tab', sender.tab.id, ':', message.error);
     neonbinderJobs.delete(sender.tab.id);
+    sendResponse({ success: true });
+    return true;
+  }
+
+  // --- Sportlots -> Pirate Ship flow ------------------------------------------
+  // Only the address is filled in; the tab stays open for the user to finish.
+
+  if (message.type === 'SPORTLOTS_PIRATESHIP') {
+    const sourceTabId = sender.tab.id;
+    browserAPI.tabs.create({ url: PIRATESHIP_SINGLE_URL, active: true }).then((tab) => {
+      pirateshipJobs.set(tab.id, { ...message.job, sourceTabId });
+      console.log('[Background] Opened Pirate Ship tab', tab.id, 'for order', message.job.orderId);
+      sendResponse({ success: true, tabId: tab.id });
+    }).catch((err) => {
+      console.error('[Background] Error opening Pirate Ship tab:', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // async sendResponse
+  }
+
+  if (message.type === 'PIRATESHIP_GET_JOB') {
+    const job = pirateshipJobs.get(sender.tab.id) || null;
+    sendResponse({ success: true, job });
+    return true;
+  }
+
+  if (message.type === 'PIRATESHIP_ADDRESS_PASTED' || message.type === 'PIRATESHIP_JOB_FAILED') {
+    // Either way the job is over; the tab stays open for the user.
+    const job = pirateshipJobs.get(sender.tab.id);
+    pirateshipJobs.delete(sender.tab.id);
+    if (message.type === 'PIRATESHIP_JOB_FAILED') {
+      console.error('[Background] Pirate Ship job failed in tab', sender.tab.id, ':', message.error);
+    } else {
+      console.log('[Background] Pirate Ship address pasted for order:', job && job.orderId);
+    }
     sendResponse({ success: true });
     return true;
   }

@@ -19,6 +19,7 @@ console.log('[Sportlots Content] ESE Printer Sportlots script loaded');
 
 const PACKING_SLIP_API = '/s/node/orders/packing-slip';
 const NEONBINDER_WEIGHTS_OZ = [1, 2, 3];
+const PIRATESHIP_ICON = 'icons/pirateship.png';
 const BUTTON_CONTAINER_CLASS = 'ese-nb-print';
 
 function injectStyles() {
@@ -118,7 +119,9 @@ function setButtonsDisabled(container, disabled) {
     container.querySelectorAll('button').forEach((btn) => { btn.disabled = disabled; });
 }
 
-async function handlePrintClick(row, container, weightOz) {
+// Look up the order's Ship To address and card count from the packing slip
+// data, then hand the resulting job to `send` (which talks to the background).
+async function withOrderAddress(row, container, send) {
     const packLink = row.querySelector('a.js-pack');
     const orderId = (row.dataset.orderKey || packLink.textContent || '').trim();
     const packUrl = packLink.dataset.url;
@@ -140,24 +143,44 @@ async function handlePrintClick(row, container, weightOz) {
             throw new Error('Ship To address was empty');
         }
 
-        console.log('[Sportlots Content] Sending label job to Neon Binder:', { orderId, weightOz, cardCount, address });
-
-        const response = await sendMessage({
-            type: 'SPORTLOTS_PRINT_LABEL',
-            job: { orderId, address, weightOz, cardCount }
-        });
-
-        if (!response || !response.success) {
-            throw new Error((response && response.error) || 'Background did not accept the job');
-        }
-
-        setStatus(container, `Sent ${weightOz} oz ✓`, false);
+        const doneText = await send({ orderId, address, cardCount });
+        setStatus(container, doneText, false);
     } catch (err) {
         console.error('[Sportlots Content] Error preparing label:', err);
         setStatus(container, 'Error: ' + err.message, true);
     } finally {
         setButtonsDisabled(container, false);
     }
+}
+
+function assertAccepted(response) {
+    if (!response || !response.success) {
+        throw new Error((response && response.error) || 'Background did not accept the job');
+    }
+}
+
+function handlePrintClick(row, container, weightOz) {
+    return withOrderAddress(row, container, async ({ orderId, address, cardCount }) => {
+        console.log('[Sportlots Content] Sending label job to Neon Binder:', { orderId, weightOz, cardCount, address });
+        assertAccepted(await sendMessage({
+            type: 'SPORTLOTS_PRINT_LABEL',
+            job: { orderId, address, weightOz, cardCount }
+        }));
+        return `Sent ${weightOz} oz ✓`;
+    });
+}
+
+// Pirate Ship is for the bigger orders: the extension only pastes the address
+// into the form and the user picks packaging and service themselves.
+function handlePirateShipClick(row, container) {
+    return withOrderAddress(row, container, async ({ orderId, address, cardCount }) => {
+        console.log('[Sportlots Content] Sending address to Pirate Ship:', { orderId, cardCount, address });
+        assertAccepted(await sendMessage({
+            type: 'SPORTLOTS_PIRATESHIP',
+            job: { orderId, address, cardCount }
+        }));
+        return 'Sent to Pirate Ship ✓';
+    });
 }
 
 // Sportlots renders a hidden `.paid-lines` fill panel after each `.paid-order`
@@ -185,24 +208,43 @@ function injectButtonsIntoPanel(panel) {
     const container = document.createElement('span');
     container.className = BUTTON_CONTAINER_CLASS;
 
-    NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
+    const makeButton = (iconPath, alt, title, onClick) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.title = `Buy and print a ${weightOz} oz label with Neon Binder`;
-        btn.setAttribute('aria-label', btn.title);
-        btn.dataset.weight = String(weightOz);
+        btn.title = title;
+        btn.setAttribute('aria-label', title);
 
         const icon = document.createElement('img');
-        icon.src = browserAPI.runtime.getURL(`icons/neonbinder-${weightOz}oz.png`);
-        icon.alt = `${weightOz} oz`;
+        icon.src = browserAPI.runtime.getURL(iconPath);
+        icon.alt = alt;
         btn.appendChild(icon);
         btn.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            handlePrintClick(row, container, weightOz);
+            onClick();
         });
+        return btn;
+    };
+
+    NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
+        const btn = makeButton(
+            `icons/neonbinder-${weightOz}oz.png`,
+            `${weightOz} oz`,
+            `Buy and print a ${weightOz} oz label with Neon Binder`,
+            () => handlePrintClick(row, container, weightOz)
+        );
+        btn.dataset.weight = String(weightOz);
         container.appendChild(btn);
     });
+
+    // Pirate Ship goes last: it opens the label form with the address pasted
+    // in and leaves the packaging and service choice to the user.
+    container.appendChild(makeButton(
+        PIRATESHIP_ICON,
+        'Pirate Ship',
+        'Open Pirate Ship with this address pasted in',
+        () => handlePirateShipClick(row, container)
+    ));
 
     // Right after "Submit Fill", ahead of Sportlots' own status message span.
     submitButton.insertAdjacentElement('afterend', container);

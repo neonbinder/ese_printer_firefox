@@ -50,7 +50,7 @@ If you need to reprint a label, simply navigate to the print page for that order
 
 ### Sportlots → Neon Binder Flow
 
-On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`), click **Fill Order** on an order and three Neon Binder icons (1 oz, 2 oz, 3 oz) appear next to the **Submit Fill** button. Clicking one:
+On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`), click **Fill Order** on an order and three Neon Binder icons (1 oz, 2 oz, 3 oz) plus a Pirate Ship icon appear next to the **Submit Fill** button. Clicking a Neon Binder one:
 
 1. Pulls the order's **Ship To** address and card count from Sportlots' packing slip data (no packing slip window is opened)
 2. Opens `https://www.neonbinder.io/print/shipping` in a new tab
@@ -61,6 +61,16 @@ On the Sportlots **Orders - Paid** page (`https://sportlots.com/s/ui/paid.html`)
 You pick the weight yourself; the extension never guesses. If anything goes wrong (address not parsed, purchase failed, print dialog never closed), the Neon Binder tab is left open so you can finish by hand, and the reason is logged to the console with a `[NeonBinder Content]` prefix.
 
 You must already be signed in to both Sportlots and Neon Binder.
+
+### Sportlots → Pirate Ship Flow
+
+A Pirate Ship icon sits at the end of the same row of buttons, for the bigger orders that don't fit an envelope. Clicking it:
+
+1. Pulls the order's **Ship To** address from Sportlots' packing slip data, same as above
+2. Opens `https://ship.pirateship.com/ship/single` in a new tab
+3. Clicks **Paste Address** (if the paste box isn't already open) and pastes the address so Pirate Ship fills in the fields
+
+That's where it stops. The tab stays open and you pick the packaging, weight, and service yourself, since the extension has no way to know how a larger order will ship. If Pirate Ship asks you to sign in first, the extension waits for the form to appear and then pastes the address. Problems are logged with a `[PirateShip Content]` prefix.
 
 ## Building and Signing
 
@@ -109,7 +119,7 @@ To publish on addons.mozilla.org, run `npm run build` and upload the zip through
 - Firefox browser
 - An eBay seller account
 - Items that qualify for eBay Standard Envelope (under 2 oz)
-- For the Sportlots flow: a Sportlots seller account and a Neon Binder account with EasyPost postage set up
+- For the Sportlots flow: a Sportlots seller account and a Neon Binder account with EasyPost postage set up (and a Pirate Ship account for the Pirate Ship button)
 
 ---
 
@@ -125,8 +135,9 @@ This is a Manifest v2 browser extension with two main components:
 | `background.js` | Service worker that manages tab lifecycle, PDF handling, and navigation |
 | `content.js` | Content script injected into eBay pages that detects page state and automates interactions |
 | `lettertrack_content.js` | Content script that auto-prints LetterTrack Pro PDF tabs |
-| `sportlots_content.js` | Injects the Neon Binder weight buttons on the Sportlots paid-orders page and fetches the Ship To address |
+| `sportlots_content.js` | Injects the Neon Binder weight buttons and the Pirate Ship button on the Sportlots paid-orders page and fetches the Ship To address |
 | `neonbinder_content.js` | Drives the Neon Binder shipping page: paste address, pick weight, buy postage, report when printed |
+| `pirateship_content.js` | Opens the Pirate Ship paste box and pastes the address, then leaves the rest to the user |
 
 ### How It Works
 
@@ -148,6 +159,9 @@ This is a Manifest v2 browser extension with two main components:
    - `SPORTLOTS_PRINT_LABEL` - Sportlots asks the background to open Neon Binder with an address + weight job
    - `NEONBINDER_GET_JOB` - The Neon Binder tab asks for the job assigned to it
    - `NEONBINDER_LABEL_PRINTED` / `NEONBINDER_JOB_FAILED` - Neon Binder reports the outcome; on success the background refocuses Sportlots and closes the Neon Binder tab
+   - `SPORTLOTS_PIRATESHIP` - Sportlots asks the background to open Pirate Ship with an address job
+   - `PIRATESHIP_GET_JOB` - The Pirate Ship tab asks for the job assigned to it
+   - `PIRATESHIP_ADDRESS_PASTED` / `PIRATESHIP_JOB_FAILED` - Pirate Ship reports the outcome; the tab is left open either way
 
 6. **PDF Tab Management**: The background script detects blob URLs from eBay (the print preview), switches focus back to the main tab, and closes the PDF tab after a delay
 
@@ -161,6 +175,7 @@ ese_printer/
 ├── lettertrack_content.js  # Content script for LetterTrack Pro PDFs
 ├── sportlots_content.js    # Content script for Sportlots paid orders
 ├── neonbinder_content.js   # Content script for Neon Binder shipping page
+├── pirateship_content.js   # Content script for the Pirate Ship shipping form
 ├── icons/             # Extension icons
 │   ├── favicon-16x16.png
 │   ├── favicon-32x32.png
@@ -177,6 +192,7 @@ The extension requires these permissions:
 - `*://www.lettertrackpro.com/*` - To auto-print LetterTrack Pro PDFs
 - `*://sportlots.com/*`, `*://www.sportlots.com/*` - To add the Neon Binder buttons on the paid orders page
 - `*://www.neonbinder.io/*` - To drive the Neon Binder shipping page
+- `*://ship.pirateship.com/*` - To paste the address into the Pirate Ship shipping form
 
 ---
 
