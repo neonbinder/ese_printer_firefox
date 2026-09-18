@@ -54,8 +54,8 @@ browserAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }, 3000);
   }
   
-  // Detect LetterTrack Pro PDF tabs by URL
-  if (changeInfo.url && changeInfo.url.match(/^https?:\/\/www\.lettertrackpro\.com\/.*\.pdf/)) {
+  // Detect LetterTrack Pro PDF tabs by URL (only when that flow is switched on)
+  if (settings.lettertrack && changeInfo.url && changeInfo.url.match(/^https?:\/\/www\.lettertrackpro\.com\/.*\.pdf/)) {
     console.log('[Background] Detected LetterTrack Pro PDF tab:', tabId, changeInfo.url);
     pdfTabsToClose.add(tabId);
     lettertrackPdfTabs.add(tabId);

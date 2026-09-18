@@ -97,11 +97,12 @@ The first time you click the icon, Firefox asks whether to open `finicky` links 
 Each flow can be switched off independently from the extension's preferences (`about:addons` → ESE Printer → Preferences):
 
 - eBay auto-print
+- BuySportsCards: LetterTrack Pro PDF auto-print
 - Sportlots: Neon Binder 1 / 2 / 3 oz buttons
 - Sportlots: Pirate Ship button
 - Sportlots: Finicky packing slip button
 
-Everything is on by default. Sportlots buttons appear or disappear as soon as a toggle changes; the eBay flow applies on the next page load. LetterTrack Pro PDF auto-print has no toggle.
+Everything is on by default. Sportlots buttons appear or disappear as soon as a toggle changes; the eBay and LetterTrack Pro flows apply on the next page load.
 
 ## Building and Signing
 
@@ -164,7 +165,7 @@ This is a Manifest v2 browser extension with two main components:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | Extension configuration, permissions, and script registration |
-| `settings.js` | Feature toggles stored in `browser.storage.local`; loaded ahead of the background, eBay, and Sportlots scripts |
+| `settings.js` | Feature toggles stored in `browser.storage.local`; loaded ahead of the background, eBay, LetterTrack Pro, and Sportlots scripts |
 | `options.html` / `options.js` | Preferences page with one checkbox per toggle |
 | `background.js` | Service worker that manages tab lifecycle, PDF handling, and navigation |
 | `content.js` | Content script injected into eBay pages that detects page state and automates interactions |

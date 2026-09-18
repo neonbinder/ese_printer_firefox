@@ -51,6 +51,7 @@
         "*://www.lettertrackpro.com/*"
       ],
       "js": [
+        "settings.js",
         "lettertrack_content.js"
       ],
       "run_at": "document_end"
