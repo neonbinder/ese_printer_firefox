@@ -74,7 +74,7 @@ That's where it stops. The tab stays open and you pick the packaging, weight, an
 
 ### Sportlots → Packing Slip via Finicky
 
-If you've set Firefox to print silently to your label printer (`print.always_print_silent` in `about:config`), you can't print a Sportlots packing slip from Firefox on your regular printer. The Finicky icon at the end of the button row works around that: it hands the order's packing slip URL to [Finicky](https://github.com/johnste/finicky) as `finicky://open/<base64 url>`, and Finicky opens it in whichever browser your rules choose, where the normal print dialog appears.
+If you've set Firefox to print silently to your label printer (`print.always_print_silent` in `about:config`), you can't print a Sportlots packing slip from Firefox on your regular printer. The Finicky icon next to each order's packing slip link works around that: it hands the order's packing slip URL to [Finicky](https://github.com/johnste/finicky) as `finicky://open/<base64 url>`, and Finicky opens it in whichever browser your rules choose, where the normal print dialog appears.
 
 This needs Finicky 4.1 or newer installed, plus a rule in `~/.finicky.js` that sends the packing slip to the browser you print from:
 
@@ -90,7 +90,18 @@ export default {
 };
 ```
 
-The first time you click the icon, Firefox asks whether to open `finicky` links with Finicky; tick "Always allow" so it doesn't ask again. Without Finicky installed the icon does nothing useful (Firefox reports no app can open the link), so leave it alone if you don't use Finicky.
+The first time you click the icon, Firefox asks whether to open `finicky` links with Finicky; tick "Always allow" so it doesn't ask again. Without Finicky installed the icon does nothing useful (Firefox reports no app can open the link), so turn it off in the options (below) if you don't use Finicky.
+
+### Options
+
+Each flow can be switched off independently from the extension's preferences (`about:addons` → ESE Printer → Preferences):
+
+- eBay auto-print
+- Sportlots: Neon Binder 1 / 2 / 3 oz buttons
+- Sportlots: Pirate Ship button
+- Sportlots: Finicky packing slip button
+
+Everything is on by default. Sportlots buttons appear or disappear as soon as a toggle changes; the eBay flow applies on the next page load. LetterTrack Pro PDF auto-print has no toggle.
 
 ## Building and Signing
 
@@ -153,6 +164,8 @@ This is a Manifest v2 browser extension with two main components:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | Extension configuration, permissions, and script registration |
+| `settings.js` | Feature toggles stored in `browser.storage.local`; loaded ahead of the background, eBay, and Sportlots scripts |
+| `options.html` / `options.js` | Preferences page with one checkbox per toggle |
 | `background.js` | Service worker that manages tab lifecycle, PDF handling, and navigation |
 | `content.js` | Content script injected into eBay pages that detects page state and automates interactions |
 | `lettertrack_content.js` | Content script that auto-prints LetterTrack Pro PDF tabs |
@@ -191,6 +204,9 @@ This is a Manifest v2 browser extension with two main components:
 ```
 ese_printer/
 ├── manifest.json      # Extension manifest
+├── settings.js        # Feature toggles (shared)
+├── options.html       # Preferences page
+├── options.js
 ├── background.js      # Background service worker
 ├── content.js         # Content script for eBay pages
 ├── lettertrack_content.js  # Content script for LetterTrack Pro PDFs
@@ -208,6 +224,7 @@ ese_printer/
 
 The extension requires these permissions:
 - `tabs` - To manage tab focus and navigation
+- `storage` - To remember the feature toggles from the options page
 - `activeTab` - To interact with the current tab
 - `*://*.ebay.com/*` - To run content scripts on eBay
 - `*://www.lettertrackpro.com/*` - To auto-print LetterTrack Pro PDFs

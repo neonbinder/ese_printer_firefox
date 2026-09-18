@@ -224,29 +224,38 @@ function init() {
     }
 }
 
-// Run the script on initial page load
-init();
-
-// Monitor for URL changes
-onUrlChange((newUrl) => {
-    console.log(`[Content] URL changed to: ${newUrl}`);
-    // Small delay to ensure DOM is ready after navigation
-    setTimeout(() => {
-        init();
-    }, 100);
-});
-
-// Also periodically check if we're on a print page but haven't handled it yet
-// This catches cases where URL change detection might miss the transition
-let lastCheckedUrl = window.location.href;
-setInterval(() => {
-    const currentUrl = window.location.href;
-    // Only check if URL actually changed and we're on a print page
-    if (currentUrl !== lastCheckedUrl) {
-        lastCheckedUrl = currentUrl;
-        if (currentUrl.startsWith('https://www.ebay.com/ship/single/print/') && !window.alreadyHandlingPrint) {
-            console.log('[Content] Detected print page but handler not running, initializing...');
-            init();
-        }
+// Everything below only runs when the eBay flow is switched on in the
+// extension's options; the page is left alone otherwise.
+loadSettings().then((settings) => {
+    if (!settings.ebay) {
+        console.log('[Content] eBay auto-print is disabled in options; not running');
+        return;
     }
-}, 500);
+
+    // Run the script on initial page load
+    init();
+
+    // Monitor for URL changes
+    onUrlChange((newUrl) => {
+        console.log(`[Content] URL changed to: ${newUrl}`);
+        // Small delay to ensure DOM is ready after navigation
+        setTimeout(() => {
+            init();
+        }, 100);
+    });
+
+    // Also periodically check if we're on a print page but haven't handled it yet
+    // This catches cases where URL change detection might miss the transition
+    let lastCheckedUrl = window.location.href;
+    setInterval(() => {
+        const currentUrl = window.location.href;
+        // Only check if URL actually changed and we're on a print page
+        if (currentUrl !== lastCheckedUrl) {
+            lastCheckedUrl = currentUrl;
+            if (currentUrl.startsWith('https://www.ebay.com/ship/single/print/') && !window.alreadyHandlingPrint) {
+                console.log('[Content] Detected print page but handler not running, initializing...');
+                init();
+            }
+        }
+    }, 500);
+});

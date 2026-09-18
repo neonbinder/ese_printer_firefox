@@ -25,6 +25,9 @@ const FINICKY_ICON = 'icons/finicky.png';
 // base64-decodes the rest, then routes the URL by the user's ~/.finicky.js.
 const FINICKY_OPEN_PREFIX = 'finicky://open/';
 const BUTTON_CONTAINER_CLASS = 'ese-nb-print';
+const FINICKY_CONTAINER_CLASS = 'ese-finicky';
+// Feature toggles from the options page (see settings.js); loaded in init().
+let settings = { ...ESE_SETTINGS_DEFAULTS };
 
 function injectStyles() {
     if (document.getElementById('ese-nb-style')) return;
@@ -40,7 +43,20 @@ function injectStyles() {
             font-size: 11px;
             white-space: nowrap;
         }
-        .${BUTTON_CONTAINER_CLASS} button {
+        .${FINICKY_CONTAINER_CLASS} {
+            display: inline-flex;
+            align-items: center;
+            vertical-align: middle;
+            gap: 6px;
+            margin-left: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .${FINICKY_CONTAINER_CLASS} button img {
+            height: 20px;
+        }
+        .${BUTTON_CONTAINER_CLASS} button,
+        .${FINICKY_CONTAINER_CLASS} button {
             padding: 0;
             border: 0;
             background: transparent;
@@ -50,23 +66,30 @@ function injectStyles() {
         }
         .${BUTTON_CONTAINER_CLASS} button img {
             height: 36px;
+        }
+        .${BUTTON_CONTAINER_CLASS} button img,
+        .${FINICKY_CONTAINER_CLASS} button img {
             width: auto;
             display: block;
             border-radius: 6px;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
-        .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) img {
+        .${BUTTON_CONTAINER_CLASS} button:hover:not(:disabled) img,
+        .${FINICKY_CONTAINER_CLASS} button:hover:not(:disabled) img {
             transform: scale(1.1);
             box-shadow: 0 0 6px #00ff88;
         }
-        .${BUTTON_CONTAINER_CLASS} button:disabled {
+        .${BUTTON_CONTAINER_CLASS} button:disabled,
+        .${FINICKY_CONTAINER_CLASS} button:disabled {
             opacity: 0.5;
             cursor: default;
         }
-        .${BUTTON_CONTAINER_CLASS} .ese-nb-status {
+        .${BUTTON_CONTAINER_CLASS} .ese-nb-status,
+        .${FINICKY_CONTAINER_CLASS} .ese-nb-status {
             color: #005f80;
         }
-        .${BUTTON_CONTAINER_CLASS} .ese-nb-status.error {
+        .${BUTTON_CONTAINER_CLASS} .ese-nb-status.error,
+        .${FINICKY_CONTAINER_CLASS} .ese-nb-status.error {
             color: #b00020;
         }
     `;
@@ -218,7 +241,26 @@ function findOrderRowForPanel(panel) {
     return prev && prev.classList.contains('paid-order') ? prev : null;
 }
 
+function makeIconButton(iconPath, alt, title, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+
+    const icon = document.createElement('img');
+    icon.src = browserAPI.runtime.getURL(iconPath);
+    icon.alt = alt;
+    btn.appendChild(icon);
+    btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick();
+    });
+    return btn;
+}
+
 function injectButtonsIntoPanel(panel) {
+    if (!settings.sportlotsNeonBinder && !settings.sportlotsPirateShip) return;
     if (panel.querySelector(`.${BUTTON_CONTAINER_CLASS}`)) return;
 
     const submitButton = panel.querySelector('button.js-submit-fill');
@@ -230,62 +272,66 @@ function injectButtonsIntoPanel(panel) {
     const container = document.createElement('span');
     container.className = BUTTON_CONTAINER_CLASS;
 
-    const makeButton = (iconPath, alt, title, onClick) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.title = title;
-        btn.setAttribute('aria-label', title);
-
-        const icon = document.createElement('img');
-        icon.src = browserAPI.runtime.getURL(iconPath);
-        icon.alt = alt;
-        btn.appendChild(icon);
-        btn.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onClick();
+    if (settings.sportlotsNeonBinder) {
+        NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
+            const btn = makeIconButton(
+                `icons/neonbinder-${weightOz}oz.png`,
+                `${weightOz} oz`,
+                `Buy and print a ${weightOz} oz label with Neon Binder`,
+                () => handlePrintClick(row, container, weightOz)
+            );
+            btn.dataset.weight = String(weightOz);
+            container.appendChild(btn);
         });
-        return btn;
-    };
-
-    NEONBINDER_WEIGHTS_OZ.forEach((weightOz) => {
-        const btn = makeButton(
-            `icons/neonbinder-${weightOz}oz.png`,
-            `${weightOz} oz`,
-            `Buy and print a ${weightOz} oz label with Neon Binder`,
-            () => handlePrintClick(row, container, weightOz)
-        );
-        btn.dataset.weight = String(weightOz);
-        container.appendChild(btn);
-    });
+    }
 
     // Pirate Ship goes last: it opens the label form with the address pasted
     // in and leaves the packaging and service choice to the user.
-    container.appendChild(makeButton(
-        PIRATESHIP_ICON,
-        'Pirate Ship',
-        'Open Pirate Ship with this address pasted in',
-        () => handlePirateShipClick(row, container)
-    ));
-
-    // Finicky icon: open the packing slip through Finicky so it can print on a
-    // regular printer instead of the label printer Firefox auto-prints to.
-    container.appendChild(makeButton(
-        FINICKY_ICON,
-        'Finicky',
-        'Open the packing slip with Finicky to print it',
-        () => handlePackingSlipClick(row, container)
-    ));
+    if (settings.sportlotsPirateShip) {
+        container.appendChild(makeIconButton(
+            PIRATESHIP_ICON,
+            'Pirate Ship',
+            'Open Pirate Ship with this address pasted in',
+            () => handlePirateShipClick(row, container)
+        ));
+    }
 
     // Right after "Submit Fill", ahead of Sportlots' own status message span.
     submitButton.insertAdjacentElement('afterend', container);
 }
 
-function injectButtons() {
-    document.querySelectorAll('.paid-lines').forEach(injectButtonsIntoPanel);
+// The Finicky icon sits in the order row itself, right after the packing slip
+// link, since it is about the packing slip rather than buying a label.
+function injectFinickyIntoRow(row) {
+    if (!settings.sportlotsFinicky) return;
+    if (row.querySelector(`.${FINICKY_CONTAINER_CLASS}`)) return;
+
+    const packLink = row.querySelector('a.js-pack');
+    if (!packLink) return;
+
+    const container = document.createElement('span');
+    container.className = FINICKY_CONTAINER_CLASS;
+    container.appendChild(makeIconButton(
+        FINICKY_ICON,
+        'Finicky',
+        'Open the packing slip with Finicky to print it',
+        () => handlePackingSlipClick(row, container)
+    ));
+    packLink.insertAdjacentElement('afterend', container);
 }
 
-function init() {
+function injectButtons() {
+    document.querySelectorAll('.paid-lines').forEach(injectButtonsIntoPanel);
+    document.querySelectorAll('.paid-order').forEach(injectFinickyIntoRow);
+}
+
+function removeInjectedButtons() {
+    document.querySelectorAll(`.${BUTTON_CONTAINER_CLASS}, .${FINICKY_CONTAINER_CLASS}`)
+        .forEach((el) => el.remove());
+}
+
+async function init() {
+    settings = await loadSettings();
     injectStyles();
     injectButtons();
 
@@ -293,6 +339,13 @@ function init() {
     // own JS, so keep watching for new rows.
     const observer = new MutationObserver(() => injectButtons());
     observer.observe(document.body, { childList: true, subtree: true });
+
+    // Toggling a feature in the options page takes effect without a reload.
+    onSettingsChanged((updated) => {
+        settings = updated;
+        removeInjectedButtons();
+        injectButtons();
+    });
 }
 
 init();

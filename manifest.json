@@ -16,6 +16,7 @@
   },
   "permissions": [
     "tabs",
+    "storage",
     "*://*.ebay.com/*",
     "*://www.lettertrackpro.com/*",
     "*://sportlots.com/*",
@@ -25,9 +26,14 @@
   ],
   "background": {
     "scripts": [
+      "settings.js",
       "background.js"
     ],
     "persistent": true
+  },
+  "options_ui": {
+    "page": "options.html",
+    "browser_style": true
   },
   "content_scripts": [
     {
@@ -35,6 +41,7 @@
         "*://*.ebay.com/*"
       ],
       "js": [
+        "settings.js",
         "content.js"
       ],
       "run_at": "document_end"
@@ -54,6 +61,7 @@
         "*://www.sportlots.com/s/ui/paid.html*"
       ],
       "js": [
+        "settings.js",
         "sportlots_content.js"
       ],
       "run_at": "document_end"

@@ -14,6 +14,13 @@ let neonbinderJobs = new Map();
 // Sportlots -> Pirate Ship address jobs, keyed by the Pirate Ship tab id
 const PIRATESHIP_SINGLE_URL = 'https://ship.pirateship.com/ship/single';
 let pirateshipJobs = new Map();
+// Feature toggles from the options page (see settings.js); kept current below.
+let settings = { ...ESE_SETTINGS_DEFAULTS };
+loadSettings().then((loaded) => { settings = loaded; });
+onSettingsChanged((loaded) => {
+  settings = loaded;
+  console.log('[Background] Settings changed:', settings);
+});
 
 // Listen for tab creation
 browserAPI.tabs.onCreated.addListener((tab) => {
@@ -22,8 +29,8 @@ browserAPI.tabs.onCreated.addListener((tab) => {
 
 // Listen for tab updates (when URL changes or loads)
 browserAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Detect blob PDF tabs from eBay
-  if (changeInfo.url && changeInfo.url.startsWith('blob:https://www.ebay.com/')) {
+  // Detect blob PDF tabs from eBay (only when the eBay flow is switched on)
+  if (settings.ebay && changeInfo.url && changeInfo.url.startsWith('blob:https://www.ebay.com/')) {
     console.log('[Background] Detected eBay PDF blob tab:', tabId, changeInfo.url);
     pdfTabsToClose.add(tabId);
     
@@ -55,7 +62,7 @@ browserAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 
   // Track which tab is the main eBay workflow tab
-  if (changeInfo.url && 
+  if (settings.ebay && changeInfo.url && 
       (changeInfo.url.includes('ebay.com/sh/ord') || 
        changeInfo.url.includes('ebay.com/ship/single'))) {
     console.log('[Background] Tracking main eBay tab:', tabId);

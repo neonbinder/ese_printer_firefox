@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ESE Printer Options</title>
+  <style>
+    body {
+      font: 13px system-ui, -apple-system, sans-serif;
+      color: #222;
+      margin: 12px;
+      min-width: 320px;
+    }
+    h2 {
+      font-size: 13px;
+      margin: 14px 0 6px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    label {
+      display: block;
+      padding: 5px 0;
+    }
+    input[type="checkbox"] {
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .hint {
+      color: #777;
+      margin: 2px 0 0 24px;
+      font-size: 12px;
+    }
+    #saved {
+      color: #005f80;
+      margin-top: 12px;
+      min-height: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h2>eBay</h2>
+  <label><input type="checkbox" id="ebay"> Auto-print eBay Standard Envelope labels</label>
+
+  <h2>Sportlots</h2>
+  <label><input type="checkbox" id="sportlotsNeonBinder"> Neon Binder 1 / 2 / 3 oz label buttons</label>
+  <label><input type="checkbox" id="sportlotsPirateShip"> Pirate Ship button</label>
+  <label><input type="checkbox" id="sportlotsFinicky"> Finicky packing slip button</label>
+  <p class="hint">Needs Finicky 4.1+ installed on this Mac. Sends the packing slip to your other browser for printing.</p>
+
+  <div id="saved"></div>
+
+  <script src="settings.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
