@@ -97,7 +97,7 @@ The first time you click the icon, Firefox asks whether to open `finicky` links 
 Each flow can be switched off independently from the extension's preferences (`about:addons` → ESE Printer → Preferences):
 
 - eBay auto-print
-- BuySportsCards: LetterTrack Pro PDF auto-print
+- BuySportsCards: Auto Print Labels
 - Sportlots: Neon Binder 1 / 2 / 3 oz buttons
 - Sportlots: Pirate Ship button
 - Sportlots: Finicky packing slip button
