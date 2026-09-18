@@ -115,6 +115,16 @@ npm start            # launches Firefox with the extension loaded (auto-reloads 
 npm run build        # unsigned zip in web-ext-artifacts/ (for Developer Edition / Nightly)
 ```
 
+### Testing changes without a release
+
+`npm start` (`web-ext run`) launches a throwaway Firefox profile, which is fine for the options page but isn't signed in to any of the sites. To try changes in your real profile instead:
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on…** and pick this repo's `manifest.json`
+3. After each edit, click **Reload** next to the add-on there, then reload the site tab
+
+The temporary copy overrides the installed version until Firefox restarts, then the signed one takes over again.
+
 ### Signed build for personal use (unlisted)
 
 1. Create a free account at [addons.mozilla.org](https://addons.mozilla.org) and generate API credentials on the [API key page](https://addons.mozilla.org/developers/addon/api/key/).

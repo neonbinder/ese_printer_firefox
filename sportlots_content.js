@@ -30,9 +30,15 @@ const FINICKY_CONTAINER_CLASS = 'ese-finicky';
 let settings = { ...ESE_SETTINGS_DEFAULTS };
 
 function injectStyles() {
-    if (document.getElementById('ese-nb-style')) return;
-    const style = document.createElement('style');
-    style.id = 'ese-nb-style';
+    // Firefox re-injects content scripts into open tabs when the extension
+    // updates, so an older version's <style> may already be here. Always
+    // (re)write the rules rather than keeping stale ones.
+    let style = document.getElementById('ese-nb-style');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'ese-nb-style';
+        document.head.appendChild(style);
+    }
     style.textContent = `
         .${BUTTON_CONTAINER_CLASS} {
             display: inline-flex;
@@ -93,7 +99,6 @@ function injectStyles() {
             color: #b00020;
         }
     `;
-    document.head.appendChild(style);
 }
 
 // Turn the packing slip page URL from the order link into the JSON API URL.
@@ -333,6 +338,9 @@ function removeInjectedButtons() {
 async function init() {
     settings = await loadSettings();
     injectStyles();
+    // Drop anything an earlier version of this script left in the page (see
+    // injectStyles) so the buttons match this version's layout.
+    removeInjectedButtons();
     injectButtons();
 
     // The order list is rendered (and re-rendered on sort/filter) by Sportlots'
