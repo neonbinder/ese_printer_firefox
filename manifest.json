@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "ESE Printer - eBay Label Automation",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Automatically handles eBay label printing flow, LetterTrack Pro PDFs, and Sportlots-to-Neon Binder / Pirate Ship label buying",
   "browser_specific_settings": {
     "gecko": {
