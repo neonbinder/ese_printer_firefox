@@ -20,6 +20,10 @@ console.log('[Sportlots Content] ESE Printer Sportlots script loaded');
 const PACKING_SLIP_API = '/s/node/orders/packing-slip';
 const NEONBINDER_WEIGHTS_OZ = [1, 2, 3];
 const PIRATESHIP_ICON = 'icons/pirateship.png';
+const FINICKY_ICON = 'icons/finicky.png';
+// Finicky (https://github.com/johnste/finicky) registers this URL scheme and
+// base64-decodes the rest, then routes the URL by the user's ~/.finicky.js.
+const FINICKY_OPEN_PREFIX = 'finicky://open/';
 const BUTTON_CONTAINER_CLASS = 'ese-nb-print';
 
 function injectStyles() {
@@ -183,6 +187,23 @@ function handlePirateShipClick(row, container) {
     });
 }
 
+// The packing slip has to print on a regular printer, but Firefox is set to
+// silently print everything to the label printer. So hand the packing slip URL
+// to Finicky, which opens it in Chrome where the normal print dialog appears.
+// Firefox asks once whether to open finicky:// links; the page itself stays put.
+function handlePackingSlipClick(row, container) {
+    const packLink = row.querySelector('a.js-pack');
+    const packUrl = packLink && packLink.dataset.url;
+    if (!packUrl) {
+        setStatus(container, 'No packing slip URL', true);
+        return;
+    }
+    const absoluteUrl = new URL(packUrl, window.location.origin).toString();
+    console.log('[Sportlots Content] Opening packing slip via Finicky:', absoluteUrl);
+    window.location.href = FINICKY_OPEN_PREFIX + btoa(absoluteUrl);
+    setStatus(container, 'Opened packing slip in Chrome ✓', false);
+}
+
 // Sportlots renders a hidden `.paid-lines` fill panel after each `.paid-order`
 // row (shown when the user clicks "Fill Order"). Both carry the same
 // data-order-key. We place the icons next to that panel's "Submit Fill" button.
@@ -244,6 +265,16 @@ function injectButtonsIntoPanel(panel) {
         'Pirate Ship',
         'Open Pirate Ship with this address pasted in',
         () => handlePirateShipClick(row, container)
+    ));
+
+    // Finicky icon: open the packing slip in another browser (via Finicky) to
+    // print it on a regular printer instead of the label printer Firefox
+    // auto-prints to.
+    container.appendChild(makeButton(
+        FINICKY_ICON,
+        'Finicky',
+        'Open the packing slip in Chrome via Finicky to print it',
+        () => handlePackingSlipClick(row, container)
     ));
 
     // Right after "Submit Fill", ahead of Sportlots' own status message span.

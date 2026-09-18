@@ -72,6 +72,26 @@ A Pirate Ship icon sits at the end of the same row of buttons, for the bigger or
 
 That's where it stops. The tab stays open and you pick the packaging, weight, and service yourself, since the extension has no way to know how a larger order will ship. If Pirate Ship asks you to sign in first, the extension waits for the form to appear and then pastes the address. Problems are logged with a `[PirateShip Content]` prefix.
 
+### Sportlots → Packing Slip in Chrome
+
+If you've set Firefox to print silently to your label printer (`print.always_print_silent` in `about:config`), you can't print a Sportlots packing slip from Firefox on your regular printer. The Finicky icon at the end of the button row works around that: it hands the order's packing slip URL to [Finicky](https://github.com/johnste/finicky) as `finicky://open/<base64 url>`, and Finicky opens it in Chrome, where the normal print dialog appears.
+
+This needs Finicky 4.1 or newer installed, plus a rule in `~/.finicky.js` that sends the packing slip to the browser you print from:
+
+```js
+const isSportlotsPackingSlip = (url) =>
+  url.hostname.replace(/^www\./, "") === "sportlots.com" &&
+  url.pathname === "/s/ui/packingslip.html";
+
+export default {
+  handlers: [
+    { match: isSportlotsPackingSlip, browser: "Google Chrome" },
+  ],
+};
+```
+
+The first time you click the icon, Firefox asks whether to open `finicky` links with Finicky; tick "Always allow" so it doesn't ask again. Without Finicky installed the icon does nothing useful (Firefox reports no app can open the link), so leave it alone if you don't use Finicky.
+
 ## Building and Signing
 
 Firefox only keeps an extension installed across restarts if Mozilla has signed it. This repo uses Mozilla's [`web-ext`](https://extensionworkshop.com/documentation/develop/web-ext-command-reference/) tool for that.
@@ -120,6 +140,7 @@ To publish on addons.mozilla.org, run `npm run build` and upload the zip through
 - An eBay seller account
 - Items that qualify for eBay Standard Envelope (under 2 oz)
 - For the Sportlots flow: a Sportlots seller account and a Neon Binder account with EasyPost postage set up (and a Pirate Ship account for the Pirate Ship button)
+- For the packing-slip-in-Chrome button: macOS with [Finicky](https://github.com/johnste/finicky) 4.1+
 
 ---
 
@@ -135,7 +156,7 @@ This is a Manifest v2 browser extension with two main components:
 | `background.js` | Service worker that manages tab lifecycle, PDF handling, and navigation |
 | `content.js` | Content script injected into eBay pages that detects page state and automates interactions |
 | `lettertrack_content.js` | Content script that auto-prints LetterTrack Pro PDF tabs |
-| `sportlots_content.js` | Injects the Neon Binder weight buttons and the Pirate Ship button on the Sportlots paid-orders page and fetches the Ship To address |
+| `sportlots_content.js` | Injects the Neon Binder weight, Pirate Ship, and packing-slip-in-Chrome buttons on the Sportlots paid-orders page and fetches the Ship To address |
 | `neonbinder_content.js` | Drives the Neon Binder shipping page: paste address, pick weight, buy postage, report when printed |
 | `pirateship_content.js` | Opens the Pirate Ship paste box and pastes the address, then leaves the rest to the user |
 
