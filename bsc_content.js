@@ -43,9 +43,7 @@ function injectStyles() {
         .${FINICKY_CONTAINER_CLASS} {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            white-space: nowrap;
+            position: relative;
         }
         .${FINICKY_CONTAINER_CLASS} button {
             padding: 0;
@@ -70,7 +68,17 @@ function injectStyles() {
             opacity: 0.5;
             cursor: default;
         }
+        /* Sits under the icon rather than in the button row, so a message
+           never wraps the row. The site's header styles (uppercase,
+           letter-spacing, its font) are reset so the text reads normally. */
         .${FINICKY_CONTAINER_CLASS} .ese-bsc-status {
+            position: absolute;
+            top: 100%;
+            right: 8px;
+            white-space: nowrap;
+            font: 11px/1.2 system-ui, -apple-system, sans-serif;
+            text-transform: none;
+            letter-spacing: normal;
             color: #005f80;
         }
         .${FINICKY_CONTAINER_CLASS} .ese-bsc-status.error {
@@ -199,7 +207,7 @@ async function handleFinickyClick(container) {
         const href = await opened;
         console.log('[BSC Content] Opening packing slip via Finicky:', href);
         window.location.href = FINICKY_OPEN_PREFIX + btoa(href);
-        setStatus(container, 'Sent packing slip to Finicky ✓', false);
+        setStatus(container, 'Sent to Finicky ✓', false);
     } catch (err) {
         console.error('[BSC Content] Error opening packing slip:', err);
         closeSiteDialog();
