@@ -9,7 +9,7 @@ loadSettings().then((settings) => {
         box.checked = Boolean(settings[key]);
         box.addEventListener('change', () => {
             saveSettings({ [key]: box.checked }).then(() => {
-                savedNote.textContent = 'Saved. Reload any open eBay or Sportlots tab to apply.';
+                savedNote.textContent = 'Saved. Reload any open eBay, BuySportsCards, or Sportlots tab to apply.';
             });
         });
     });

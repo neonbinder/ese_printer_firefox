@@ -92,17 +92,39 @@ export default {
 
 The first time you click the icon, Firefox asks whether to open `finicky` links with Finicky; tick "Always allow" so it doesn't ask again. Without Finicky installed the icon does nothing useful (Firefox reports no app can open the link), so turn it off in the options (below) if you don't use Finicky.
 
+### BuySportsCards → Packing Slip via Finicky
+
+The same Finicky icon sits next to **Print Packing Slip** on a BuySportsCards Seller's Locker order-detail page. BSC generates its packing slip as a PDF on demand (its own button opens a "Sort Order" dialog whose **Generate** button opens the PDF in a new tab), so the icon clicks through that dialog for you with the default sort, catches the PDF URL the page is about to open, and hands it to Finicky instead of a new Firefox tab. The dialog is kept hidden while this happens.
+
+Add a matching rule to `~/.finicky.js` (the PDFs live at `bsc-media-images.s3.amazonaws.com`):
+
+```js
+const isBscPackingSlip = (url) =>
+  url.hostname === "bsc-media-images.s3.amazonaws.com" &&
+  url.pathname.includes("/packing-slip/");
+
+export default {
+  handlers: [
+    { match: isSportlotsPackingSlip, browser: "Google Chrome" },
+    { match: isBscPackingSlip, browser: "Google Chrome" },
+  ],
+};
+```
+
+If the packing slip hasn't been generated within 20 seconds the icon shows an error and closes BSC's dialog; use the site's own button in that case.
+
 ### Options
 
 Each flow can be switched off independently from the extension's preferences (`about:addons` → ESE Printer → Preferences):
 
 - eBay auto-print
 - BuySportsCards: Auto Print Labels
+- BuySportsCards: Finicky packing slip button
 - Sportlots: Neon Binder 1 / 2 / 3 oz buttons
 - Sportlots: Pirate Ship button
 - Sportlots: Finicky packing slip button
 
-Everything is on by default. Sportlots buttons appear or disappear as soon as a toggle changes; the eBay and LetterTrack Pro flows apply on the next page load.
+Everything is on by default. Sportlots and BuySportsCards buttons appear or disappear as soon as a toggle changes; the eBay and LetterTrack Pro flows apply on the next page load.
 
 ## Building and Signing
 
@@ -175,11 +197,12 @@ This is a Manifest v2 browser extension with two main components:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | Extension configuration, permissions, and script registration |
-| `settings.js` | Feature toggles stored in `browser.storage.local`; loaded ahead of the background, eBay, LetterTrack Pro, and Sportlots scripts |
+| `settings.js` | Feature toggles stored in `browser.storage.local`; loaded ahead of the background, eBay, LetterTrack Pro, BuySportsCards, and Sportlots scripts |
 | `options.html` / `options.js` | Preferences page with one checkbox per toggle |
 | `background.js` | Service worker that manages tab lifecycle, PDF handling, and navigation |
 | `content.js` | Content script injected into eBay pages that detects page state and automates interactions |
 | `lettertrack_content.js` | Content script that auto-prints LetterTrack Pro PDF tabs |
+| `bsc_content.js` | Injects the Finicky packing slip button on BuySportsCards order-detail pages and drives the site's own packing slip dialog |
 | `sportlots_content.js` | Injects the Neon Binder weight, Pirate Ship, and Finicky packing slip buttons on the Sportlots paid-orders page and fetches the Ship To address |
 | `neonbinder_content.js` | Drives the Neon Binder shipping page: paste address, pick weight, buy postage, report when printed |
 | `pirateship_content.js` | Opens the Pirate Ship paste box and pastes the address, then leaves the rest to the user |

@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "ESE Printer - eBay Label Automation",
   "version": "1.4.1",
-  "description": "Automatically handles eBay label printing flow, LetterTrack Pro PDFs, and Sportlots-to-Neon Binder / Pirate Ship label buying",
+  "description": "Automatically handles eBay label printing flow, LetterTrack Pro PDFs, Sportlots-to-Neon Binder / Pirate Ship label buying, and Finicky packing slip buttons",
   "browser_specific_settings": {
     "gecko": {
       "id": "ese-printer@neonbinder.io",
@@ -19,6 +19,7 @@
     "storage",
     "*://*.ebay.com/*",
     "*://www.lettertrackpro.com/*",
+    "*://www.buysportscards.com/*",
     "*://sportlots.com/*",
     "*://www.sportlots.com/*",
     "*://www.neonbinder.io/*",
@@ -53,6 +54,16 @@
       "js": [
         "settings.js",
         "lettertrack_content.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://www.buysportscards.com/*"
+      ],
+      "js": [
+        "settings.js",
+        "bsc_content.js"
       ],
       "run_at": "document_end"
     },

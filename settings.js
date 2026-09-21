@@ -7,6 +7,7 @@
 const ESE_SETTINGS_DEFAULTS = {
     ebay: true,                 // eBay label auto-print flow (content.js + background)
     lettertrack: true,          // LetterTrack Pro PDF auto-print (BuySportsCards)
+    bscFinicky: true,           // Finicky packing slip button on BuySportsCards order detail
     sportlotsNeonBinder: true,  // 1/2/3 oz Neon Binder buttons on Sportlots
     sportlotsPirateShip: true,  // Pirate Ship button on Sportlots
     sportlotsFinicky: true      // Finicky packing slip button on Sportlots
